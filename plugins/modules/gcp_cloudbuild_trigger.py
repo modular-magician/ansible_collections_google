@@ -425,6 +425,32 @@ options:
               all of a build's secrets.
             required: false
             type: dict
+      available_secrets:
+        description:
+        - Secrets and secret environment variables.
+        required: false
+        type: dict
+        suboptions:
+          secret_manager:
+            description:
+            - Pairs a secret environment variable with a SecretVersion in Secret Manager.
+            elements: dict
+            required: true
+            type: list
+            suboptions:
+              version_name:
+                description:
+                - 'Resource name of the SecretVersion. In format: projects/*/secrets/*/versions/*
+                  .'
+                required: true
+                type: str
+              env:
+                description:
+                - Environment variable name to associate with the secret. Secret environment
+                  variables must be unique across all of a build's secrets, and must
+                  be used by at least one build step.
+                required: true
+                type: str
       steps:
         description:
         - The operations to be performed on the workspace.
@@ -1182,6 +1208,31 @@ build:
             secrets.
           returned: success
           type: dict
+    availableSecrets:
+      description:
+      - Secrets and secret environment variables.
+      returned: success
+      type: complex
+      contains:
+        secretManager:
+          description:
+          - Pairs a secret environment variable with a SecretVersion in Secret Manager.
+          returned: success
+          type: complex
+          contains:
+            versionName:
+              description:
+              - 'Resource name of the SecretVersion. In format: projects/*/secrets/*/versions/*
+                .'
+              returned: success
+              type: str
+            env:
+              description:
+              - Environment variable name to associate with the secret. Secret environment
+                variables must be unique across all of a build's secrets, and must
+                be used by at least one build step.
+              returned: success
+              type: str
     steps:
       description:
       - The operations to be performed on the workspace.
@@ -1563,6 +1614,17 @@ def main():
                     logs_bucket=dict(type='str'),
                     timeout=dict(default='600s', type='str'),
                     secrets=dict(type='list', elements='dict', options=dict(kms_key_name=dict(required=True, type='str'), secret_env=dict(type='dict'))),
+                    available_secrets=dict(
+                        type='dict',
+                        options=dict(
+                            secret_manager=dict(
+                                required=True,
+                                type='list',
+                                elements='dict',
+                                options=dict(version_name=dict(required=True, type='str'), env=dict(required=True, type='str')),
+                            )
+                        ),
+                    ),
                     steps=dict(
                         required=True,
                         type='list',
@@ -1907,6 +1969,7 @@ class TriggerBuild(object):
                 u'logsBucket': self.request.get('logs_bucket'),
                 u'timeout': self.request.get('timeout'),
                 u'secrets': TriggerSecretsArray(self.request.get('secrets', []), self.module).to_request(),
+                u'availableSecrets': TriggerAvailablesecrets(self.request.get('available_secrets', {}), self.module).to_request(),
                 u'steps': TriggerStepsArray(self.request.get('steps', []), self.module).to_request(),
                 u'artifacts': TriggerArtifacts(self.request.get('artifacts', {}), self.module).to_request(),
                 u'options': TriggerOptions(self.request.get('options', {}), self.module).to_request(),
@@ -1924,6 +1987,7 @@ class TriggerBuild(object):
                 u'logsBucket': self.request.get(u'logsBucket'),
                 u'timeout': self.request.get(u'timeout'),
                 u'secrets': TriggerSecretsArray(self.request.get(u'secrets', []), self.module).from_response(),
+                u'availableSecrets': TriggerAvailablesecrets(self.request.get(u'availableSecrets', {}), self.module).from_response(),
                 u'steps': TriggerStepsArray(self.request.get(u'steps', []), self.module).from_response(),
                 u'artifacts': TriggerArtifacts(self.request.get(u'artifacts', {}), self.module).from_response(),
                 u'options': TriggerOptions(self.request.get(u'options', {}), self.module).from_response(),
@@ -2037,6 +2101,48 @@ class TriggerSecretsArray(object):
 
     def _response_from_item(self, item):
         return remove_nones_from_dict({u'kmsKeyName': item.get(u'kmsKeyName'), u'secretEnv': item.get(u'secretEnv')})
+
+
+class TriggerAvailablesecrets(object):
+    def __init__(self, request, module):
+        self.module = module
+        if request:
+            self.request = request
+        else:
+            self.request = {}
+
+    def to_request(self):
+        return remove_nones_from_dict({u'secretManager': TriggerSecretmanagerArray(self.request.get('secret_manager', []), self.module).to_request()})
+
+    def from_response(self):
+        return remove_nones_from_dict({u'secretManager': TriggerSecretmanagerArray(self.request.get(u'secretManager', []), self.module).from_response()})
+
+
+class TriggerSecretmanagerArray(object):
+    def __init__(self, request, module):
+        self.module = module
+        if request:
+            self.request = request
+        else:
+            self.request = []
+
+    def to_request(self):
+        items = []
+        for item in self.request:
+            items.append(self._request_for_item(item))
+        return items
+
+    def from_response(self):
+        items = []
+        for item in self.request:
+            items.append(self._response_from_item(item))
+        return items
+
+    def _request_for_item(self, item):
+        return remove_nones_from_dict({u'versionName': item.get('version_name'), u'env': item.get('env')})
+
+    def _response_from_item(self, item):
+        return remove_nones_from_dict({u'versionName': item.get(u'versionName'), u'env': item.get(u'env')})
 
 
 class TriggerStepsArray(object):

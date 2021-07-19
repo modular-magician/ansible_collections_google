@@ -497,6 +497,32 @@ resources:
                 all of a build's secrets.
               returned: success
               type: dict
+        availableSecrets:
+          description:
+          - Secrets and secret environment variables.
+          returned: success
+          type: complex
+          contains:
+            secretManager:
+              description:
+              - Pairs a secret environment variable with a SecretVersion in Secret
+                Manager.
+              returned: success
+              type: complex
+              contains:
+                versionName:
+                  description:
+                  - 'Resource name of the SecretVersion. In format: projects/*/secrets/*/versions/*
+                    .'
+                  returned: success
+                  type: str
+                env:
+                  description:
+                  - Environment variable name to associate with the secret. Secret
+                    environment variables must be unique across all of a build's secrets,
+                    and must be used by at least one build step.
+                  returned: success
+                  type: str
         steps:
           description:
           - The operations to be performed on the workspace.
